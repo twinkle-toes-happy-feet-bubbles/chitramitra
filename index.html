@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Cultural Imagery Repository</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Indian Cultural Imagery Repository</h1>
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#gallery">Gallery</a></li>
+                <li><a href="#upload">Upload Image</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="gallery" class="gallery">
+        <h2>Gallery</h2>
+        <div class="image-grid" id="image-grid">
+            <!-- Images will be loaded here -->
+        </div>
+    </section>
+
+    <section id="upload" class="upload">
+        <h2>Upload Image</h2>
+        <form id="upload-form">
+            <input type="file" id="image-input" accept="image/*" required>
+            <input type="text" id="image-title" placeholder="Image Title" required>
+            <button type="submit">Upload</button>
+        </form>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Chitramitra. All rights reserved.</p>
+    </footer>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.3.1/firebase-storage.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcHDgEDEi_uTFRLO0Fgk9F2wIhmgM_fYk",
+            authDomain: "chitramitra-a730b.firebaseapp.com",
+            projectId: "chitramitra-a730b",
+            storageBucket: "chitramitra-a730b.appspot.com",
+            messagingSenderId: "632708584079",
+            appId: "1:632708584079:web:16c7931a7926aae462d6fa",
+            measurementId: "G-DR0HC9BE60"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Handle form submission for uploading images
+        document.getElementById('upload-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('image-input');
+            const titleInput = document.getElementById('image-title');
+
+            if (fileInput.files.length === 0) {
+                alert('Please select an image to upload.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const storageRef = ref(storage, `images/${file.name}`);
+            await uploadBytes(storageRef, file);
+            const imageUrl = await getDownloadURL(storageRef);
+
+            // Save image metadata to Firestore
+            await addDoc(collection(db, 'images'), {
+                title: titleInput.value,
+                imageUrl: imageUrl,
+                timestamp: new Date()
+            });
+
+            titleInput.value = '';
+            fileInput.value = '';
+
+            loadImages(); // Reload the gallery with the new image
+        });
+
+        // Load images from Firestore and display them in the gallery
+        async function loadImages() {
+            const imageGrid = document.getElementById('image-grid');
+            imageGrid.innerHTML = ''; // Clear current images
+
+            const querySnapshot = await getDocs(collection(db, 'images'));
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const imgElement = document.createElement('img');
+                imgElement.src = data.imageUrl;
+                imgElement.alt = data.title;
+                imageGrid.appendChild(imgElement);
+            });
+        }
+
+        // Initial load of images
+        loadImages();
+    </script>
+</body>
+</html>
